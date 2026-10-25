@@ -1,34 +1,52 @@
 # CSA SCRIPT is an IT tool for Marcellos Farm
 
-Expected: A local file named DEV_CSA_lista.xlsx. (Export the order list gsheets document into this filename.)
+Local export of the order list: `DEV_CSA_lista.xlsx`.
 
-Server:
+### Generate: Generate automatically reads the order list file.
+
+python3 generate.py
+
+### Pull: Hard-code the sheet URL here (as DEFAULT_SHEET):
+
+python3 tools/pull.py
+
+Pull, then regenerate `out/`. Generate uses `venv/bin/python3` when that interpreter exists.
+
+### Refresh:
+
+python3 tools/refresh.py
+
+## Server:
+
+`/refresh` asks for the passphrase in `~/.local/state/csa-refresh-pass`. That is not the password on the generated pages. Open it with `http://` typed in the bar.
 
 source venv/bin/activate
 python serve.py
 
+mkdir -p ~/.local/state
+printf '%s\n' 'passphrase' > ~/.local/state/csa-refresh-pass
 
-Tunnel:
+### Manual Tunnel from a local host:
 
 mkdir -p ~/.local/state
 ~/.local/bin/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate 2>&1 | tee ~/.local/state/csa-tunnel.log
 
-Hosting:
+## Daemon:
 
-The pages can be served from the Pi, or from a machine at the office. Either way `serve.py` listens on port 8080. On the Pi it runs as the `csa-pages` service, from `csa.service`. Set `User` and `WorkingDirectory` in that file to the account and the checkout, stop the copy started by hand, then:
+Daemon, on the Pi or a machine at the office. Set `User`, `WorkingDirectory`, and `CSA_REFRESH_PASSFILE` in `tools/csa.service`. The router forwards port 80 to 8080. The forward names the machine by its address inside the house, so a new public address needs no restart. Log: `journalctl -u csa`.
 
-```
-sudo cp csa.service /etc/systemd/system/
+sudo cp tools/csa.service /etc/systemd/system/csa.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now csa
-```
 
-`journalctl -u csa` shows the same page requests. The service starts again after a reboot.
+## Daily check:
 
-Refresh from outside. On the serving machine, put a passphrase on the first line of `~/.local/state/csa-refresh-pass`, and set `CSA_REFRESH_PASSFILE` in the service to that file. Then open `http://<the public address>/refresh` with `http://` typed in the bar, and enter that passphrase. The server stays in this checkout and runs `python3 tools/refresh.py` there: pull from `tools/`, generate from the `generate.py` beside it. Generate runs with `venv/bin/python3` when that interpreter is there, because `openpyxl` is installed in the virtualenv. Reload the lists. This passphrase is checked by the server. It is not the password on the generated pages.
+Prints only when the public address changes or the pages stop answering. The first run records the address. `--accept` stores a new one.
 
-The router holds the public address. One forward sends port 80 on that address to port 8080 on the chosen machine. The forward has been tried from the public web, with the Pi as the machine, and the page requests show up in the Pi's server log.
+15 7 * * * python3 /path/to/csa_script/tools/check.py
+python3 tools/check.py --accept
 
-When the public address changes, the server keeps running. The forward names the machine by its address inside the house, so nothing there has to be restarted. A daily check on the serving machine reports the new address.
 
-The name members would use is a subdomain of marcellosfarm.se. The domain is at Loopia. In Kundzon, the DNS-editor gets one A record for that name, with TTL 300, pointed at the public address. The record for marcellosfarm.se itself stays as it is. A saved change is remembered for at most five minutes, then visitors get the new address. That name is not set up yet. It waits on the farm's hosting plan.
+## Domain Name:
+
+Name, not set up yet. A subdomain of marcellosfarm.se, in Loopia's DNS-editor, one A record, TTL 300. Leave the `marcellosfarm.se` record as it is.
