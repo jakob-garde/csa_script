@@ -1,7 +1,7 @@
 """Pull the order list and regenerate the pages.
 
-Writes a fresh out/ directory for the sibling csa_script checkout. The server
-keeps running; it reads the new files on the next request.
+Writes a fresh out/ directory in this checkout. The server keeps running;
+it reads the new files on the next request.
 
     python3 refresh.py
     python3 refresh.py /path/to/csa_script
@@ -53,7 +53,14 @@ def regenerate(csa, pull, generate):
 
 
 def _default_csa():
-    return Path(__file__).resolve().parent.parent / "csa_script"
+    tools = Path(__file__).resolve().parent
+    checkout = tools.parent
+    if (checkout / "generate.py").is_file():
+        return checkout
+    sibling = checkout / "csa_script"
+    if (sibling / "generate.py").is_file():
+        return sibling
+    raise SystemExit(f"No generate.py beside {tools}")
 
 
 def _pull(destination):

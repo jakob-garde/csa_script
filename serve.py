@@ -114,7 +114,13 @@ class Refresh:
         if completed.returncode != 0:
             detail = (completed.stderr or completed.stdout or "Refresh failed.").strip()
             return 500, detail
-        return 200, "Pages regenerated. Reload the lists."
+        written = (completed.stdout or "").strip()
+        if written:
+            print(written, flush=True)
+        message = "Pages regenerated. Reload the lists."
+        if written:
+            message = f"{message} Wrote {written}"
+        return 200, message
 
 
 def load_refresh():
