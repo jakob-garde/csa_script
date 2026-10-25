@@ -17,7 +17,8 @@ def main(argv):
         raise SystemExit(f"No index.html in {out}. Run generate.py first.")
     handler = partial(SimpleHTTPRequestHandler, directory=str(out.resolve()))
     server = ThreadingHTTPServer(("0.0.0.0", port), handler)
-    print(f"Serving {out.resolve()} at http://127.0.0.1:{port}/", flush=True)
+    bound_host, bound_port = server.server_address
+    print(f"Serving {out.resolve()} on {bound_host}:{bound_port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
