@@ -69,10 +69,17 @@ def _pull(destination):
 
 def _generate(csa, source, destination):
     subprocess.run(
-        [sys.executable, "generate.py", str(source), str(destination)],
+        [python_for(csa), "generate.py", str(source), str(destination)],
         cwd=csa,
         check=True,
     )
+
+
+def python_for(csa):
+    venv = Path(csa) / "venv" / "bin" / "python3"
+    if venv.is_file():
+        return str(venv)
+    return sys.executable
 
 
 if __name__ == "__main__":
