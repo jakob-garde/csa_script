@@ -5,9 +5,11 @@ Wants=network-online.target
 
 [Service]
 # The account that owns the checkout, and the directory that contains serve.py and out/.
-User=csa
-WorkingDirectory=/home/csa/csa_script
+User=<user>
+WorkingDirectory=<path-to>/csa_script
 ExecStart=/usr/bin/python3 serve.py
+Environment=CSA_REFRESH_PASSFILE=~.local/state/csa-refresh-pass
+Environment=CSA_REFRESH_COMMAND=/usr/bin/python3 <path-to>/csa_script/tools/refresh.py
 Restart=on-failure
 RestartSec=2
 
