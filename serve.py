@@ -4,19 +4,14 @@ Binds on every interface. Each generated page asks for its own password before
 showing the week's lists. /refresh is separate: a passphrase checked on the
 server runs the pull-and-generate command, then the new files are served.
 
-The passphrase file and the command come from the environment, so neither the
-passphrase nor the sheet address lives in this repo:
-
-    CSA_REFRESH_PASSFILE=~/.local/state/csa-refresh-pass
-    CSA_REFRESH_COMMAND=python3 /path/to/csa_script/tools/refresh.py
-
-Without those, /refresh is not there.
+The passphrase file is CSA_REFRESH_PASSFILE. Without it, /refresh is not
+there. The server stays in this checkout and runs ``python3 tools/refresh.py``
+there, which pulls from tools/ and generates with the generate.py beside it.
 """
 
 import hmac
 import html
 import os
-import shlex
 import subprocess
 import sys
 import threading
@@ -34,7 +29,8 @@ def main(argv):
     port = int(argv[2]) if len(argv) > 2 else 8080
     if not (out / "index.html").is_file():
         raise SystemExit(f"No index.html in {out}. Run generate.py first.")
-    server = serve(out, port, load_refresh())
+    checkout = Path(__file__).resolve().parent
+    server = serve(out, port, load_refresh(checkout))
     bound_host, bound_port = server.server_address
     print(f"Serving {out.resolve()} on {bound_host}:{bound_port}", flush=True)
     try:
@@ -90,9 +86,10 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 class Refresh:
-    def __init__(self, command, passphrase):
+    def __init__(self, command, passphrase, cwd):
         self.command = command
         self.passphrase = passphrase
+        self.cwd = cwd
         self.lock = threading.Lock()
 
     def run(self, given):
@@ -103,6 +100,7 @@ class Refresh:
         try:
             completed = subprocess.run(
                 self.command,
+                cwd=self.cwd,
                 capture_output=True,
                 text=True,
                 timeout=REFRESH_TIMEOUT,
@@ -123,13 +121,10 @@ class Refresh:
         return 200, message
 
 
-def load_refresh():
-    command = os.environ.get("CSA_REFRESH_COMMAND", "").strip()
+def load_refresh(checkout):
     passfile = os.environ.get("CSA_REFRESH_PASSFILE", "").strip()
-    if not command and not passfile:
+    if not passfile:
         return None
-    if not command or not passfile:
-        raise SystemExit("Set both CSA_REFRESH_COMMAND and CSA_REFRESH_PASSFILE.")
     path = Path(passfile)
     if not path.is_file():
         raise SystemExit(f"No refresh passphrase at {path}")
@@ -137,7 +132,8 @@ def load_refresh():
     passphrase = lines[0] if lines else ""
     if not passphrase:
         raise SystemExit(f"Refresh passphrase file {path} is empty")
-    return Refresh(shlex.split(command), passphrase)
+    command = [sys.executable, "tools/refresh.py", str(checkout)]
+    return Refresh(command, passphrase, checkout)
 
 
 def passphrase_ok(given, expected):

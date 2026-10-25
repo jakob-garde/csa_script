@@ -1,5 +1,6 @@
 """The outside trigger checks a passphrase, then runs the refresh command."""
 
+import os
 import threading
 import unittest
 from http.client import HTTPConnection
@@ -7,7 +8,23 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlencode
 
-from serve import Refresh, passphrase_ok, posted_passphrase, serve
+from serve import Refresh, load_refresh, passphrase_ok, posted_passphrase, serve
+
+
+class LoadRefreshTest(unittest.TestCase):
+    def test_command_stays_in_the_checkout_and_calls_tools(self):
+        with TemporaryDirectory() as directory:
+            checkout = Path(directory)
+            passfile = checkout / "pass"
+            passfile.write_text("gurka\n")
+            os.environ["CSA_REFRESH_PASSFILE"] = str(passfile)
+            try:
+                refresh = load_refresh(checkout)
+            finally:
+                del os.environ["CSA_REFRESH_PASSFILE"]
+        self.assertEqual(refresh.cwd, checkout)
+        self.assertEqual(refresh.command[-2:], ["tools/refresh.py", str(checkout)])
+        self.assertEqual(refresh.passphrase, "gurka")
 
 
 class PassphraseTest(unittest.TestCase):
@@ -38,6 +55,7 @@ class RefreshHttpTest(unittest.TestCase):
             refresh = Refresh(
                 [__import__("sys").executable, "-c", f"open({str(marker)!r}, 'w').write('ok')"],
                 "secret",
+                directory,
             )
             with _running(refresh) as server:
                 status, body = _get(server, "/refresh")
@@ -54,7 +72,7 @@ class RefreshHttpTest(unittest.TestCase):
             self.assertEqual(marker.read_text(), "ok")
 
     def test_a_second_refresh_waits_outside(self):
-        refresh = Refresh(["python3", "-c", "pass"], "secret")
+        refresh = Refresh(["python3", "-c", "pass"], "secret", None)
         refresh.lock.acquire()
         try:
             with _running(refresh) as server:

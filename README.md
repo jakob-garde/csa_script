@@ -25,7 +25,7 @@ sudo systemctl enable --now csa
 
 `journalctl -u csa` shows the same page requests. The service starts again after a reboot.
 
-Refresh from outside, after the service has the two `Environment` lines from `tools/csa.service`. On the serving machine, put a passphrase on the first line of `~/.local/state/csa-refresh-pass`. Then open `http://<the public address>/refresh` with `http://` typed in the bar, and enter that passphrase. The machine pulls the order list and replaces the pages. Reload the lists. This passphrase is checked by the server. It is not the password on the generated pages. The private `csa_script_tools` folder has to sit next to this checkout, because that is what runs the pull.
+Refresh from outside. On the serving machine, put a passphrase on the first line of `~/.local/state/csa-refresh-pass`, and set `CSA_REFRESH_PASSFILE` in the service to that file. Then open `http://<the public address>/refresh` with `http://` typed in the bar, and enter that passphrase. The server stays in this checkout and runs `python3 tools/refresh.py` there: pull from `tools/`, generate from the `generate.py` beside it. Reload the lists. This passphrase is checked by the server. It is not the password on the generated pages.
 
 The router holds the public address. One forward sends port 80 on that address to port 8080 on the chosen machine. The forward has been tried from the public web, with the Pi as the machine, and the page requests show up in the Pi's server log.
 
