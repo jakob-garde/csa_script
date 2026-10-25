@@ -1,0 +1,15 @@
+[Unit]
+Description=CSA pages
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# The account that owns the checkout, and the directory that contains serve.py and out/.
+User=csa
+WorkingDirectory=/home/csa/csa_script
+ExecStart=/usr/bin/python3 serve.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
