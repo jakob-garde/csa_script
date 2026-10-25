@@ -2,17 +2,17 @@
 
 Local export of the order list: `DEV_CSA_lista.xlsx`.
 
-### Generate: Generate automatically reads the order list file.
+## Generate: Generate automatically reads the order list file.
 
 python3 generate.py
 
-### Pull: Hard-code the sheet URL here (as DEFAULT_SHEET):
+## Pull: Hard-code the sheet URL here (as DEFAULT_SHEET):
 
 python3 tools/pull.py
 
 Pull, then regenerate `out/`. Generate uses `venv/bin/python3` when that interpreter exists.
 
-### Refresh:
+## Refresh:
 
 python3 tools/refresh.py
 
@@ -45,7 +45,6 @@ Prints only when the public address changes or the pages stop answering. The fir
 
 15 7 * * * python3 /path/to/csa_script/tools/check.py
 python3 tools/check.py --accept
-
 
 ## Domain Name:
 
